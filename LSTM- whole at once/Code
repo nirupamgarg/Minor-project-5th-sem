@@ -1,0 +1,85 @@
+
+import os
+from mido import MidiFile
+
+def create_data():
+    dataset="/content/drive/My Drive/Minor project 5th sem/albeniz/"
+    
+    x_train=[]
+    y_train=[]
+    
+    midFiles= [f for f in os.listdir(dataset) if f.endswith('.mid')]   
+       
+    for file in midFiles:
+        pianoLeft=[]
+        pianoRight=[]
+        piano=[]
+        mid=MidiFile(dataset+file)
+        right=mid.tracks[1]
+        left=mid.tracks[2]
+        
+        for msg in right:
+            if str(msg).split(' ')[0]=='note_on' or str(msg).split(' ')[0]=='note_off':
+                temp=[]
+                for m in str(msg).split(' '):
+                    if m=='note_on':
+                        temp.append(1)
+                    elif m=='note_off':
+                        temp.append(0)
+                    else:
+                        temp.append(int(m.split('=')[1]))
+                pianoRight.append(temp)
+                
+        for msg in left:
+            if str(msg).split(' ')[0]=='note_on' or str(msg).split(' ')[0]=='note_off':
+                temp=[]
+                for m in str(msg).split(' '):
+                    if m=='note_on':
+                        temp.append(1)
+                    elif m=='note_off':
+                        temp.append(0)
+                    else:
+                        temp.append(int(m.split('=')[1]))
+                pianoLeft.append(temp)
+        
+        piano=pianoLeft+pianoRight
+        
+        i=0
+        while i<500:
+            y_train.append(piano[i+1])
+            cur_train=[]
+            for k in range(0,16):
+                cur_train.append(piano[i+k])
+            x_train.append(cur_train)    
+            i+=1
+    return (x_train,y_train)
+    
+    import tensorflow as tf
+from tensorflow import keras
+
+import numpy as np
+import random
+from mido import Message, MidiFile, MidiTrack
+
+(x_train,y_train)=create_data()
+
+x_train=np.array(x_train)
+y_train=np.array(y_train)
+
+x_train=x_train.astype("int")
+y_train=y_train.astype("int")
+
+model=keras.Sequential()
+model.add(keras.Input(shape=(16,5)))
+model.add(keras.layers.LSTM(100))
+model.add(keras.layers.Dense(1*5))
+
+model.compile(loss = 'categorical_crossentropy', optimizer='adam',metrics = ['accuracy'])
+print(model.summary())
+model.fit(x_train,y_train,batch_size =10, epochs = 5)
+
+# =============================================================================
+# test=np.array([x_train[1]])
+# 
+# print( model.predict(test) )
+# =============================================================================
